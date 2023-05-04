@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io/fs"
+
 	"os"
 	"os/exec"
 	"runtime"
@@ -75,6 +76,7 @@ func main() {
 	}
 
 	dirs := GetDirsList(config.Dirs)
+	dirs = filterConfigDirs(dirs, config.Filter)
 	files := make([]string, 0)
 	for _, dir := range dirs {
 		for _, filter := range config.Filter {
@@ -90,9 +92,30 @@ func main() {
 	}
 }
 
+func filterConfigDirs(dirs []string, s []string) []string {
+	res := []string{}
+	for _, d := range dirs {
+		var count = 0
+		for _, f := range s {
+
+			var matches, err = (fs.Glob(os.DirFS("./"+d), "./"+f))
+			if err != nil {
+				panic(err)
+
+			}
+			count += len(matches)
+		}
+		if count > 0 {
+			res = append(res, d)
+		}
+	}
+
+	return res
+}
+
 func GetDirList(path string) []string {
 	dirs := make([]string, 0)
-	rd, err := ioutil.ReadDir(path)
+	rd, err := os.ReadDir(path)
 	if err != nil {
 		fmt.Println("read dir error!", err)
 		return dirs
